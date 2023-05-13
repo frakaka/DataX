@@ -4,9 +4,8 @@ import com.alibaba.datax.common.exception.DataXException;
 import com.alibaba.datax.common.util.Configuration;
 import com.alibaba.datax.plugin.writer.mongodbwriter.KeyConstant;
 import com.alibaba.datax.plugin.writer.mongodbwriter.MongoDBWriterErrorCode;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoCredential;
-import com.mongodb.ServerAddress;
+import com.mongodb.*;
+import org.apache.commons.lang.StringUtils;
 
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -40,7 +39,7 @@ public class MongoUtil {
         }
         try {
             MongoCredential credential = MongoCredential.createCredential(userName, database, password.toCharArray());
-            return new MongoClient(parseServerAddress(addressList), Arrays.asList(credential));
+            return new MongoClient(parseServerAddress(addressList), credential, MongoClientOptions.builder().build());
 
         } catch (UnknownHostException e) {
             throw DataXException.asDataXException(MongoDBWriterErrorCode.ILLEGAL_ADDRESS,"不合法的地址");
@@ -50,6 +49,16 @@ public class MongoUtil {
             throw DataXException.asDataXException(MongoDBWriterErrorCode.UNEXCEPT_EXCEPTION,"未知异常");
         }
     }
+
+    public static MongoClient initMongoClient(String uri) {
+        try {
+            MongoClientURI clientURI = new MongoClientURI(uri);
+            return new MongoClient(clientURI);
+        } catch (Exception e) {
+            throw DataXException.asDataXException(MongoDBWriterErrorCode.UNEXCEPT_EXCEPTION,"未知异常");
+        }
+    }
+
     /**
      * 判断地址类型是否符合要求
      * @param addressList

@@ -16,7 +16,10 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.BulkWriteOptions;
 import com.mongodb.client.model.ReplaceOneModel;
+import com.mongodb.client.model.ReplaceOptions;
 import com.mongodb.client.model.UpdateOptions;
+import org.bson.BasicBSONObject;
+import org.bson.BsonDocument;
 import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,6 +74,7 @@ public class MongoDBWriter extends Writer{
         private JSONArray mongodbColumnMeta = null;
         private JSONObject writeMode = null;
         private static int BATCH_SIZE = 1000;
+        private String uri = null;
 
         @Override
         public void prepare() {
@@ -112,7 +116,7 @@ public class MongoDBWriter extends Writer{
 //              and  { "pv" : { "$gt" : 200 , "$lt" : 3000} , "pid" : { "$ne" : "xxx"}}
 //              or  { "$or" : [ { "age" : { "$gt" : 27}} , { "age" : { "$lt" : 15}}]}
                 } else {
-                    query = (BasicDBObject) com.mongodb.util.JSON.parse(json);
+                    query = BasicDBObject.parse(json);
                 }
                 col.deleteMany(query);
             }
@@ -228,7 +232,7 @@ public class MongoDBWriter extends Writer{
                                 }
                             } else if(type.toLowerCase().equalsIgnoreCase("json")) {
                                 //如果是json类型,将其进行转换
-                                Object mode = com.mongodb.util.JSON.parse(record.getColumn(i).asString());
+                                Object mode = BasicDBObject.parse(record.getColumn(i).asString());
                                 data.put(columnMeta.getJSONObject(i).getString(KeyConstant.COLUMN_NAME),JSON.toJSON(mode));
                             } else {
                                 data.put(columnMeta.getJSONObject(i).getString(KeyConstant.COLUMN_NAME), record.getColumn(i).asString());
@@ -300,7 +304,7 @@ public class MongoDBWriter extends Writer{
                         if(uniqueKey != null) {
                             query.put(uniqueKey,data.get(uniqueKey));
                         }
-                        ReplaceOneModel<BasicDBObject> replaceOneModel = new ReplaceOneModel<BasicDBObject>(query, data, new UpdateOptions().upsert(true));
+                        ReplaceOneModel<BasicDBObject> replaceOneModel = new ReplaceOneModel<BasicDBObject>(query, data, new ReplaceOptions().upsert(true));
                         replaceOneModelList.add(replaceOneModel);
                     }
                     collection.bulkWrite(replaceOneModelList, new BulkWriteOptions().ordered(false));
@@ -320,7 +324,11 @@ public class MongoDBWriter extends Writer{
             this.userName = writerSliceConfig.getString(KeyConstant.MONGO_USER_NAME);
             this.password = writerSliceConfig.getString(KeyConstant.MONGO_USER_PASSWORD);
             this.database = writerSliceConfig.getString(KeyConstant.MONGO_DB_NAME);
-            if(!Strings.isNullOrEmpty(userName) && !Strings.isNullOrEmpty(password)) {
+            this.uri = writerSliceConfig.getString(KeyConstant.MONGO_URI);
+
+            if (!Strings.isNullOrEmpty(uri)) {
+                this.mongoClient = MongoUtil.initMongoClient(this.uri);
+            } else if(!Strings.isNullOrEmpty(userName) && !Strings.isNullOrEmpty(password)) {
                 this.mongoClient = MongoUtil.initCredentialMongoClient(this.writerSliceConfig,userName,password,database);
             } else {
                 this.mongoClient = MongoUtil.initMongoClient(this.writerSliceConfig);

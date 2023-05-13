@@ -26,6 +26,10 @@ public class KeyConstant {
      */
     public static final String MONGO_DB_NAME = "dbName";
     /**
+     * mongodb uri
+     */
+    public static final String MONGO_URI = "uri";
+    /**
      * mongodb 集合名
      */
     public static final String MONGO_COLLECTION_NAME = "collectionName";
